@@ -24,6 +24,7 @@ logs/
 
 # Local settings
 .claude/settings.local.json
+.claude/docs-sync.stamp
 .env
 
 # OS

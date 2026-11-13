@@ -11,6 +11,7 @@
 - **사용자가 보낸 프롬프트는 작업을 시작하기 전에 원문 그대로 `prompts/used_prompts.md` 에 추가한다.** 요약하거나 고치지 않는다. 선택지 버튼으로 답한 것도 어떤 질문에 대한 답인지와 함께 적는다. 프롬프트 누락은 과제 실격 사유다
 - `assignment/` 의 원본(`legacy_db.sql`, PDF)은 수정하지 않는다. 실행용 사본은 `src/main/resources/db/legacy/legacy_db.sql` 이며 원본과 내용이 같아야 한다
 - 제출한 코드는 `./gradlew test` 한 줄로 실행돼야 한다. 실행되지 않으면 과제 실격이다
+- `src/main` 이나 `src/test` 의 코드를 바꾸면 응답을 끝내기 전에 `sync-docs` 스킬(`.claude/skills/sync-docs`)로 `DESIGN.md` 와 `docs/order-flow.md` 에 반영한다. 빠뜨리면 Stop 훅(`.claude/hooks/docs-sync-check.sh`)이 알린다
 
 ## 빌드 & 실행
 
