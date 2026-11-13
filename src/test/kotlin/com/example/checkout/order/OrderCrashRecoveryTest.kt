@@ -141,6 +141,45 @@ class OrderCrashRecoveryTest(
         assertThat(stockOf(G001)).isEqualTo(G001_STOCK)
     }
 
+    @Test
+    fun `한 주문의 복구가 예외로 끝나도 나머지 주문은 복구되고 실패한 주문은 다음 실행에서 복구된다`() {
+        val broken = reserveThenCancelAndCrashAt(OrderStep.CANCELING_RECORDED)
+        val pending = placeOrderAndCrashAt(OrderStep.LEGACY_RESERVED, idempotencyKey = "key-pending")
+        val canceling = reserveThenCancelAndCrashAt(OrderStep.CANCELING_RECORDED)
+        // 가장 먼저 처리되는 주문의 복구만 실패한다
+        every { orderStepObserver.passed(OrderStep.LEGACY_RELEASED, broken.orderNo) } throws SimulatedCrash()
+
+        val firstRun = orderRecoveryService.recoverStuckOrders(Duration.ZERO)
+
+        assertThat(firstRun).isEqualTo(2)
+        assertThat(reload(broken).status).isEqualTo(OrderStatus.CANCELING)
+        assertThat(reload(pending).status).isEqualTo(OrderStatus.RESERVED)
+        assertThat(reload(canceling).status).isEqualTo(OrderStatus.CANCELED)
+
+        justRun { orderStepObserver.passed(any(), any()) }
+        val secondRun = orderRecoveryService.recoverStuckOrders(Duration.ZERO)
+
+        assertThat(secondRun).isEqualTo(1)
+        assertThat(reload(broken).status).isEqualTo(OrderStatus.CANCELED)
+        // broken, canceling 의 2개씩은 돌아왔고 pending 의 2개만 빠져 있다
+        assertThat(stockOf(G001)).isEqualTo(G001_STOCK - 2)
+    }
+
+    @Test
+    fun `한 주문의 만료 처리가 예외로 끝나도 나머지 미결제 주문은 되돌린다`() {
+        val broken = orderService.placeOrder(orderCommand(G001, qty = 2))
+        val unpaid = orderService.placeOrder(orderCommand(G001, qty = 3))
+        every { orderStepObserver.passed(OrderStep.CANCELING_RECORDED, broken.orderNo) } throws SimulatedCrash()
+
+        val canceled = orderRecoveryService.cancelUnpaidOrders(Duration.ZERO)
+
+        assertThat(canceled).isEqualTo(1)
+        assertThat(orderRepository.findByOrderNo(unpaid.orderNo)?.status).isEqualTo(OrderStatus.CANCELED)
+        // 실패한 주문은 CANCELING 에 남아 recoverStuckOrders 의 대상이 된다
+        assertThat(orderRepository.findByOrderNo(broken.orderNo)?.status).isEqualTo(OrderStatus.CANCELING)
+        assertThat(stockOf(G001)).isEqualTo(G001_STOCK - 2)
+    }
+
     /** G001 2개 주문을 시작하고 [step] 직후에 죽인다. 신규 DB 에 남은 주문을 돌려준다 */
     private fun placeOrderAndCrashAt(
         step: OrderStep,

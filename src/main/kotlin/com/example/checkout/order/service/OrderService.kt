@@ -6,6 +6,7 @@ import com.example.checkout.domain.entity.CheckoutOrder
 import com.example.checkout.domain.entity.OrderItem
 import com.example.checkout.domain.entity.OrderItemId
 import com.example.checkout.domain.entity.OrderStatus
+import com.example.checkout.domain.repository.OrderItemRepository
 import com.example.checkout.domain.repository.OrderRepository
 import com.example.checkout.legacy.resource.ApplyStat
 import com.example.checkout.legacy.resource.LegacyResourcePort
@@ -34,18 +35,24 @@ import java.time.Clock
 class OrderService(
     private val orderQuoteService: OrderQuoteService,
     private val orderRepository: OrderRepository,
+    private val orderItemRepository: OrderItemRepository,
     private val orderWriter: OrderWriter,
     private val legacyResourcePort: LegacyResourcePort,
     private val orderStepObserver: OrderStepObserver,
     private val orderSupport: OrderSupport,
 ) {
-    /** 같은 회원이 같은 멱등 키로 다시 요청하면 다시 실행하지 않고 기존 주문의 현재 상태를 돌려준다 */
-    fun placeOrder(command: PlaceOrderCommand): OrderResult =
-        findExisting(command)?.toResult() ?: placeNewOrder(command)
+    /**
+     * 같은 회원이 같은 멱등 키로 다시 요청하면 다시 실행하지 않고 기존 주문의 현재 상태를 돌려준다.
+     *
+     * 단, 요청 내용(품목·수량·쿠폰·포인트)이 기존 주문과 같을 때만이다. 다르면 [ApiStatus.ORDER_IDEMPOTENCY_KEY_REUSED] 로 거절한다.
+     */
+    fun placeOrder(command: PlaceOrderCommand): OrderResult = existingResult(command) ?: placeNewOrder(command)
 
     private fun placeNewOrder(command: PlaceOrderCommand): OrderResult {
         val quote = orderQuoteService.quote(command)
-        val (order, items) = recordPending(command, quote) ?: return existingResult(command)
+        val (order, items) =
+            recordPending(command, quote)
+                ?: return existingResult(command) ?: throw ApiException(ApiStatus.ORDER_NOT_FOUND)
         orderStepObserver.passed(OrderStep.PENDING_RECORDED, order.orderNo)
 
         val reserveResult = legacyResourcePort.reserve(order.toResources(items))
@@ -84,8 +91,29 @@ class OrderService(
     private fun findExisting(command: PlaceOrderCommand): CheckoutOrder? =
         orderRepository.findByMemberNoAndIdempotencyKey(command.memberNo, command.idempotencyKey)
 
-    private fun existingResult(command: PlaceOrderCommand): OrderResult =
-        findExisting(command)?.toResult() ?: throw ApiException(ApiStatus.ORDER_NOT_FOUND)
+    /** 같은 회원·같은 멱등 키의 주문이 있으면 그 결과. 요청 내용이 그 주문과 다르면 거절한다. 주문이 없으면 null */
+    private fun existingResult(command: PlaceOrderCommand): OrderResult? {
+        val order = findExisting(command) ?: return null
+        if (!isSameRequest(order, command)) throw ApiException(ApiStatus.ORDER_IDEMPOTENCY_KEY_REUSED)
+        return order.toResult()
+    }
+
+    /**
+     * 요청 내용이 기존 주문과 같은지. 품목(상품·수량), 쿠폰, 포인트를 주문 스냅샷과 비교한다. 품목의 순서는 보지 않는다.
+     *
+     * 사용자가 확인한 금액(`expectedPayAmount`)은 비교하지 않는다. 주문에 저장하는 값이 아니고,
+     * 품목·쿠폰이 같으면 금액은 첫 요청에서 이미 확정됐기 때문이다.
+     */
+    private fun isSameRequest(
+        order: CheckoutOrder,
+        command: PlaceOrderCommand,
+    ): Boolean {
+        val orderedLines = orderItemRepository.findByIdOrderNoOrderByIdSeq(order.orderNo).map { it.goodsCd to it.qty }
+        val requestedLines = command.lines.map { it.goodsCd to it.qty }
+        return order.couponNo == command.couponNo &&
+            order.pointAmount == command.pointAmount &&
+            orderedLines.sortedWith(LINE_ORDER) == requestedLines.sortedWith(LINE_ORDER)
+    }
 
     /** ③ 레거시의 결과를 신규 주문 상태에 반영한다. 복구 작업자가 먼저 반영했으면 전이는 일어나지 않는다 */
     private fun settle(
@@ -110,6 +138,9 @@ class OrderService(
     companion object {
         /** 주문번호가 겹쳤을 때 새 번호로 다시 기록해 보는 횟수(첫 시도 포함) */
         private const val MAX_ORDER_NO_ATTEMPTS = 3
+
+        /** 품목(상품 코드, 수량)을 순서와 무관하게 비교하기 위한 정렬 기준 */
+        private val LINE_ORDER = compareBy<Pair<String, Int>>({ it.first }, { it.second })
     }
 }
 

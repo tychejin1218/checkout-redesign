@@ -6,7 +6,7 @@ package com.example.checkout.legacy.model
 data class LegacyGoods(
     val goodsCd: String,
     val goodsNm: String,
-    val salePrc: Int,
+    val salePrc: Long,
     val stockQty: Int,
     val saleStat: String,
 ) {

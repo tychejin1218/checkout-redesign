@@ -35,6 +35,7 @@ enum class ApiStatus(
     ORDER_POINT_INVALID(HttpStatus.BAD_REQUEST, "사용할 포인트 금액이 올바르지 않습니다."),
     ORDER_AMOUNT_CHANGED(HttpStatus.CONFLICT, "결제 금액이 변경되었습니다. 금액을 다시 확인해주세요."),
     ORDER_STATUS_INVALID(HttpStatus.CONFLICT, "현재 상태에서는 처리할 수 없는 주문입니다."),
+    ORDER_IDEMPOTENCY_KEY_REUSED(HttpStatus.CONFLICT, "같은 멱등 키로 다른 내용의 주문을 요청했습니다."),
 
     // 시스템 (ExceptionAdvice 가 프레임워크 예외를 자동 매핑)
     SYSTEM_INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "내부 오류가 발생했습니다."),

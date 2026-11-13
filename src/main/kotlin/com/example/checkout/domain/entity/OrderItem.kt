@@ -23,7 +23,7 @@ class OrderItem(
     @Column(name = "qty", nullable = false)
     val qty: Int,
     @Column(name = "unit_price", nullable = false)
-    val unitPrice: Int,
+    val unitPrice: Long,
 )
 
 /**

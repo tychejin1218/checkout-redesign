@@ -28,31 +28,63 @@ class OrderRecoveryService(
     /**
      * PENDING·CANCELING 에 [stuckFor] 넘게 머문 주문을 복구한다.
      *
-     * @return 복구한 주문 수
+     * 주문 한 건의 복구가 예외로 끝나도 나머지 주문은 계속 복구한다.
+     *
+     * @return 복구한 주문 수. 예외로 끝난 주문은 세지 않는다
      */
-    fun recoverStuckOrders(stuckFor: Duration): Int {
-        val stuckOrders = findOlderThan(stuckFor, OrderStatus.PENDING, OrderStatus.CANCELING)
-        stuckOrders.forEach { order ->
-            if (order.status == OrderStatus.PENDING) recoverPending(order) else orderCancelService.completeCancel(order)
+    fun recoverStuckOrders(stuckFor: Duration): Int =
+        findOlderThan(stuckFor, OrderStatus.PENDING, OrderStatus.CANCELING).count { order ->
+            isolated("복구", order) {
+                if (order.status ==
+                    OrderStatus.PENDING
+                ) {
+                    recoverPending(order)
+                } else {
+                    orderCancelService.completeCancel(order)
+                }
+                true
+            }
         }
-        return stuckOrders.size
-    }
 
     /**
      * RESERVED 에서 [unpaidFor] 넘게 결제되지 않은 주문을 되돌린다.
      *
-     * @return 되돌린 주문 수
+     * 주문 한 건의 처리가 예외로 끝나도 나머지 주문은 계속 되돌린다.
+     *
+     * @return 되돌린 주문 수. 건너뛰었거나 예외로 끝난 주문은 세지 않는다
      */
     fun cancelUnpaidOrders(unpaidFor: Duration): Int =
         findOlderThan(unpaidFor, OrderStatus.RESERVED).count { order ->
-            try {
-                orderCancelService.cancel(order.orderNo)
-                true
-            } catch (ex: ApiException) {
-                // 조회한 뒤에 결제가 끝났거나 다른 쪽이 먼저 취소했다
-                log.info("만료 처리 건너뜀. orderNo={} reason={}", order.orderNo, ex.apiStatus)
-                false
-            }
+            isolated("만료 처리", order) { cancelUnpaid(order) }
+        }
+
+    private fun cancelUnpaid(order: CheckoutOrder): Boolean =
+        try {
+            orderCancelService.cancel(order.orderNo)
+            true
+        } catch (ex: ApiException) {
+            // 조회한 뒤에 결제가 끝났거나 다른 쪽이 먼저 취소했다
+            log.info("만료 처리 건너뜀. orderNo={} reason={}", order.orderNo, ex.apiStatus)
+            false
+        }
+
+    /**
+     * 주문 한 건의 처리가 예외로 끝나도 다음 주문으로 넘어가게 한다.
+     *
+     * 실패한 주문은 중간 상태(PENDING·CANCELING) 그대로 남으므로 다음 실행에서 다시 대상이 된다.
+     * DB 장애처럼 어떤 예외가 올지 알 수 없는 자리라 예외 종류를 가리지 않고 잡는다.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private fun isolated(
+        task: String,
+        order: CheckoutOrder,
+        action: () -> Boolean,
+    ): Boolean =
+        try {
+            action()
+        } catch (ex: Exception) {
+            log.error("{} 실패. 다음 주문으로 넘어간다. orderNo={} status={}", task, order.orderNo, order.status, ex)
+            false
         }
 
     /**

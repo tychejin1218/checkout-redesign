@@ -70,7 +70,7 @@ class NewSchemaConstraintTest(
         orderNo: String,
         memberNo: Long,
         idempotencyKey: String,
-        payAmount: Int = 10_000,
+        payAmount: Long = 10_000,
     ) {
         jdbc.update(
             """

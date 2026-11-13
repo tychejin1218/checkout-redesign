@@ -12,10 +12,10 @@ import com.example.checkout.domain.entity.OrderStatus
 data class PlaceOrderCommand(
     val memberNo: Long,
     val lines: List<OrderLine>,
-    val expectedPayAmount: Int,
+    val expectedPayAmount: Long,
     val idempotencyKey: String,
     val couponNo: String? = null,
-    val pointAmount: Int = 0,
+    val pointAmount: Long = 0,
 )
 
 data class OrderLine(
@@ -31,7 +31,7 @@ data class OrderLine(
 data class OrderResult(
     val orderNo: String,
     val status: OrderStatus,
-    val payAmount: Int,
+    val payAmount: Long,
     val failReason: String?,
 )
 

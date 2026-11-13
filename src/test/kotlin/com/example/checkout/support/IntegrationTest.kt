@@ -51,8 +51,8 @@ abstract class IntegrationTest {
     protected fun stockOf(goodsCd: String): Int =
         legacyJdbc.queryForObject("SELECT STOCK_QTY FROM TB_GOODS WHERE GOODS_CD = ?", Int::class.java, goodsCd) ?: -1
 
-    protected fun pointOf(memberNo: Long): Int =
-        legacyJdbc.queryForObject("SELECT POINT_AMT FROM TB_MEMBER WHERE MBR_NO = ?", Int::class.java, memberNo) ?: -1
+    protected fun pointOf(memberNo: Long): Long =
+        legacyJdbc.queryForObject("SELECT POINT_AMT FROM TB_MEMBER WHERE MBR_NO = ?", Long::class.java, memberNo) ?: -1
 
     /** 쿠폰의 (사용 여부, 사용된 주문번호) */
     protected fun couponUseOf(couponNo: String): Pair<String, String?> =
@@ -79,7 +79,7 @@ abstract class IntegrationTest {
     protected fun issueCoupon(
         couponNo: String,
         memberNo: Long,
-        discountAmount: Int,
+        discountAmount: Long,
     ) {
         legacyJdbc.update(
             "INSERT INTO TB_COUPON (CPN_NO, MBR_NO, CPN_NM, DC_AMT, USE_YN, REG_DT) VALUES (?, ?, '테스트 쿠폰', ?, 'N', ?)",

@@ -175,6 +175,77 @@ class OrderPlacementTest(
     }
 
     @Test
+    fun `같은 멱등 키로 품목 순서만 바꿔 다시 요청해도 같은 주문을 돌려준다`() {
+        val command =
+            PlaceOrderCommand(
+                memberNo = MEMBER_1002,
+                lines = listOf(OrderLine(G001, 2), OrderLine(G002, 1)),
+                expectedPayAmount = G001_PRICE * 2 + G002_PRICE,
+                idempotencyKey = "key-reordered",
+            )
+
+        val first = orderService.placeOrder(command)
+        val second = orderService.placeOrder(command.copy(lines = command.lines.reversed()))
+
+        assertThat(second.orderNo).isEqualTo(first.orderNo)
+        assertThat(orderRepository.count()).isEqualTo(1)
+    }
+
+    @Test
+    fun `같은 멱등 키로 수량이 다른 요청을 보내면 거절하고 기존 주문과 재고는 그대로다`() {
+        val first = orderService.placeOrder(orderCommand(G001, qty = 2, idempotencyKey = "key-reused"))
+
+        assertKeyReused(orderCommand(G001, qty = 3, idempotencyKey = "key-reused"))
+
+        assertThat(orderRepository.count()).isEqualTo(1)
+        assertThat(orderRepository.findByOrderNo(first.orderNo)?.payAmount).isEqualTo(G001_PRICE * 2)
+        assertThat(stockOf(G001)).isEqualTo(G001_STOCK - 2)
+    }
+
+    @Test
+    fun `같은 멱등 키로 상품이 다른 요청을 보내면 거절한다`() {
+        orderService.placeOrder(orderCommand(G001, qty = 1, idempotencyKey = "key-reused"))
+
+        assertKeyReused(orderCommand(G002, qty = 1, unitPrice = G002_PRICE, idempotencyKey = "key-reused"))
+
+        assertThat(stockOf(G002)).isEqualTo(G002_STOCK)
+    }
+
+    @Test
+    fun `같은 멱등 키로 쿠폰이 다른 요청을 보내면 거절하고 쿠폰은 쓰이지 않는다`() {
+        issueCoupon("CPN920", MEMBER_1002, discountAmount = 3_000)
+        orderService.placeOrder(orderCommand(G001, qty = 1, idempotencyKey = "key-reused"))
+
+        val withCoupon = orderCommand(G001, qty = 1, idempotencyKey = "key-reused")
+        assertKeyReused(withCoupon.copy(couponNo = "CPN920", expectedPayAmount = G001_PRICE - 3_000))
+
+        assertThat(couponUseOf("CPN920")).isEqualTo("N" to null)
+    }
+
+    @Test
+    fun `같은 멱등 키로 포인트가 다른 요청을 보내면 거절하고 포인트는 줄지 않는다`() {
+        orderService.placeOrder(orderCommand(G001, qty = 1, idempotencyKey = "key-reused"))
+
+        assertKeyReused(orderCommand(G001, qty = 1, idempotencyKey = "key-reused").copy(pointAmount = 1_000))
+
+        assertThat(pointOf(MEMBER_1002)).isEqualTo(MEMBER_1002_POINT)
+    }
+
+    @Test
+    fun `수량과 단가를 곱한 금액이 Int 범위를 넘어도 금액이 정확히 계산된다`() {
+        // 28,000 × 100,000 = 2,800,000,000 > Int.MAX_VALUE(2,147,483,647)
+        val command = orderCommand(G001, qty = 100_000)
+
+        val result = orderService.placeOrder(command)
+
+        assertThat(command.expectedPayAmount).isEqualTo(2_800_000_000L)
+        assertThat(result.payAmount).isEqualTo(2_800_000_000L)
+        // 금액 검증은 통과하고, 재고가 모자라 레거시 차감에서 거절된다
+        assertThat(result.failReason).isEqualTo("OUT_OF_STOCK")
+        assertThat(orderRepository.findByOrderNo(result.orderNo)?.itemAmount).isEqualTo(2_800_000_000L)
+    }
+
+    @Test
     fun `다른 회원이 같은 멱등 키를 써도 각자의 주문이 만들어진다`() {
         val mine = orderService.placeOrder(orderCommand(G001, memberNo = MEMBER_1002, idempotencyKey = "same-key"))
         val others = orderService.placeOrder(orderCommand(G001, memberNo = MEMBER_1001, idempotencyKey = "same-key"))
@@ -213,5 +284,12 @@ class OrderPlacementTest(
         assertThat(orderRepository.count()).isEqualTo(1)
         assertThat(orderRepository.findByOrderNo(existing.orderNo)?.memberNo).isEqualTo(MEMBER_1002)
         assertThat(stockOf(G001)).isEqualTo(G001_STOCK - 2)
+    }
+
+    private fun assertKeyReused(command: PlaceOrderCommand) {
+        assertThatThrownBy { orderService.placeOrder(command) }
+            .isInstanceOfSatisfying(ApiException::class.java) {
+                assertThat(it.apiStatus).isEqualTo(ApiStatus.ORDER_IDEMPOTENCY_KEY_REUSED)
+            }
     }
 }

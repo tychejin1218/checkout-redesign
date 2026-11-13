@@ -22,6 +22,7 @@ class OrderQuoteService(
         validateMember(command.memberNo)
         validateLines(command)
         val lines = command.lines.map { quoteLine(it) }
+        // 수량(Int) × 단가(Long). Int 끼리 곱하면 수량이 클 때 넘친다
         val itemAmount = lines.sumOf { it.qty * it.unitPrice }
         val quote = OrderQuote(lines, itemAmount, discountOf(command, itemAmount))
         validateAmounts(command, quote)
@@ -59,9 +60,9 @@ class OrderQuoteService(
     /** 쿠폰 할인. 상품 금액을 넘지 않는다 */
     private fun discountOf(
         command: PlaceOrderCommand,
-        itemAmount: Int,
-    ): Int {
-        val couponNo = command.couponNo ?: return 0
+        itemAmount: Long,
+    ): Long {
+        val couponNo = command.couponNo ?: return 0L
         val coupon = legacyResourcePort.findCoupon(couponNo)?.takeIf { it.isUsableBy(command.memberNo) }
         coupon ?: throw ApiException(ApiStatus.ORDER_COUPON_UNAVAILABLE)
         return minOf(coupon.dcAmt, itemAmount)
@@ -73,16 +74,16 @@ class OrderQuoteService(
  */
 data class OrderQuote(
     val lines: List<Line>,
-    val itemAmount: Int,
-    val discountAmount: Int,
+    val itemAmount: Long,
+    val discountAmount: Long,
 ) {
-    val payAmount: Int
+    val payAmount: Long
         get() = itemAmount - discountAmount
 
     data class Line(
         val goodsCd: String,
         val goodsName: String,
         val qty: Int,
-        val unitPrice: Int,
+        val unitPrice: Long,
     )
 }

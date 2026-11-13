@@ -99,7 +99,7 @@ class LegacyResourceAdapter(
     }
 
     private fun deductPoint(resources: OrderResources): ReserveFailReason? {
-        if (resources.pointAmount == 0) return null
+        if (resources.pointAmount == 0L) return null
         val deducted = mapper.deductPoint(resources.memberNo, resources.pointAmount) == 1
         return if (deducted) null else ReserveFailReason.POINT_INSUFFICIENT
     }

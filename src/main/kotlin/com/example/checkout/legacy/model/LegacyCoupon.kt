@@ -6,7 +6,7 @@ package com.example.checkout.legacy.model
 data class LegacyCoupon(
     val cpnNo: String,
     val mbrNo: Long,
-    val dcAmt: Int,
+    val dcAmt: Long,
     val useYn: String,
 ) {
     fun isUsableBy(memberNo: Long): Boolean = mbrNo == memberNo && useYn == USE_YN_UNUSED

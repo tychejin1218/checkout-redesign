@@ -81,7 +81,7 @@ class OrderRequestValidationTest(
     /** 회원 1002 가 G001 한 개를 쿠폰으로 주문하는 요청 */
     private fun couponCommand(
         couponNo: String,
-        discountAmount: Int,
+        discountAmount: Long,
     ): PlaceOrderCommand =
         orderCommand(G001, qty = 1).copy(couponNo = couponNo, expectedPayAmount = G001_PRICE - discountAmount)
 

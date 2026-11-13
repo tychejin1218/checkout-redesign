@@ -34,7 +34,7 @@ interface LegacyResourceMapper {
     fun deductStock(
         goodsCd: String,
         qty: Int,
-        expectedPrice: Int,
+        expectedPrice: Long,
     ): Int
 
     fun restoreStock(
@@ -58,11 +58,11 @@ interface LegacyResourceMapper {
     /** 잔액이 충분할 때만 차감한다 */
     fun deductPoint(
         mbrNo: Long,
-        amount: Int,
+        amount: Long,
     ): Int
 
     fun restorePoint(
         mbrNo: Long,
-        amount: Int,
+        amount: Long,
     ): Int
 }

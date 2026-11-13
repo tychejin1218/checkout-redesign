@@ -26,13 +26,13 @@ class CheckoutOrder(
     @Column(name = "member_no", nullable = false)
     val memberNo: Long,
     @Column(name = "item_amount", nullable = false)
-    val itemAmount: Int,
+    val itemAmount: Long,
     @Column(name = "discount_amount", nullable = false)
-    val discountAmount: Int,
+    val discountAmount: Long,
     @Column(name = "pay_amount", nullable = false)
-    val payAmount: Int,
+    val payAmount: Long,
     @Column(name = "point_amount", nullable = false)
-    val pointAmount: Int,
+    val pointAmount: Long,
     @Column(name = "coupon_no")
     val couponNo: String?,
     @Column(name = "idempotency_key", nullable = false)

@@ -11,13 +11,13 @@ import java.util.UUID
  */
 const val G001 = "G001"
 const val G002 = "G002"
-const val G001_PRICE = 28_000
-const val G002_PRICE = 36_000
+const val G001_PRICE = 28_000L
+const val G002_PRICE = 36_000L
 const val G001_STOCK = 50
 const val G002_STOCK = 3
 const val MEMBER_1001 = 1001L
 const val MEMBER_1002 = 1002L
-const val MEMBER_1002_POINT = 120_000
+const val MEMBER_1002_POINT = 120_000L
 
 /** legacy_db.sql 에 없는 회원 번호 */
 const val UNKNOWN_MEMBER = 9_999L
@@ -26,7 +26,7 @@ const val UNKNOWN_MEMBER = 9_999L
 fun orderCommand(
     goodsCd: String = G001,
     qty: Int = 1,
-    unitPrice: Int = G001_PRICE,
+    unitPrice: Long = G001_PRICE,
     memberNo: Long = MEMBER_1002,
     idempotencyKey: String = UUID.randomUUID().toString(),
 ): PlaceOrderCommand =

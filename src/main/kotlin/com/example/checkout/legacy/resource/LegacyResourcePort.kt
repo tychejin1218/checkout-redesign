@@ -37,13 +37,13 @@ data class OrderResources(
     val memberNo: Long,
     val lines: List<Line>,
     val couponNo: String?,
-    val pointAmount: Int,
+    val pointAmount: Long,
 ) {
     /** @property unitPrice 주문 시점 단가. 레거시의 현재 가격과 다르면 차감하지 않는다 */
     data class Line(
         val goodsCd: String,
         val qty: Int,
-        val unitPrice: Int,
+        val unitPrice: Long,
     )
 }
 
