@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.checkout.legacy.mapper.LegacyResourceMapper">
+  <select id="findGoods" resultType="com.example.checkout.legacy.model.LegacyGoods">
+    SELECT GOODS_CD, GOODS_NM, SALE_PRC, STOCK_QTY, SALE_STAT
+      FROM TB_GOODS
+     WHERE GOODS_CD = #{goodsCd}
+  </select>
+
+  <select id="findCoupon" resultType="com.example.checkout.legacy.model.LegacyCoupon">
+    SELECT CPN_NO, MBR_NO, DC_AMT, USE_YN
+      FROM TB_COUPON
+     WHERE CPN_NO = #{cpnNo}
+  </select>
+
+  <!-- 반영 기록: PK(ORD_NO) 가 이미 있으면 넣지 않는다. 영향 행 수 0 = 이 주문은 이미 결론이 났다 -->
+  <insert id="insertApplyMarker">
+    INSERT OR IGNORE INTO TB_NEW_ORD_APPLY (ORD_NO, APPLY_STAT, APPLY_DT, UPD_DT)
+    VALUES (#{ordNo}, #{applyStat}, #{now}, #{now})
+  </insert>
+
+  <select id="findApplyStat" resultType="java.lang.String">
+    SELECT APPLY_STAT FROM TB_NEW_ORD_APPLY WHERE ORD_NO = #{ordNo}
+  </select>
+
+  <update id="markReverted">
+    UPDATE TB_NEW_ORD_APPLY
+       SET APPLY_STAT = 'R', UPD_DT = #{now}
+     WHERE ORD_NO = #{ordNo} AND APPLY_STAT = 'A'
+  </update>
+
+  <!-- 재고: 읽고 덮어쓰지 않는다. 조건에 맞을 때만 줄어들므로 음수가 될 수 없다 -->
+  <update id="deductStock">
+    UPDATE TB_GOODS
+       SET STOCK_QTY = STOCK_QTY - #{qty}
+     WHERE GOODS_CD = #{goodsCd}
+       AND SALE_STAT = '01'
+       AND STOCK_QTY >= #{qty}
+       AND SALE_PRC = #{expectedPrice}
+  </update>
+
+  <update id="restoreStock">
+    UPDATE TB_GOODS SET STOCK_QTY = STOCK_QTY + #{qty} WHERE GOODS_CD = #{goodsCd}
+  </update>
+
+  <update id="useCoupon">
+    UPDATE TB_COUPON
+       SET USE_YN = 'Y', USE_ORD_NO = #{ordNo}
+     WHERE CPN_NO = #{cpnNo} AND MBR_NO = #{mbrNo} AND USE_YN = 'N'
+  </update>
+
+  <update id="restoreCoupon">
+    UPDATE TB_COUPON
+       SET USE_YN = 'N', USE_ORD_NO = NULL
+     WHERE CPN_NO = #{cpnNo} AND USE_YN = 'Y' AND USE_ORD_NO = #{ordNo}
+  </update>
+
+  <update id="deductPoint">
+    UPDATE TB_MEMBER
+       SET POINT_AMT = POINT_AMT - #{amount}
+     WHERE MBR_NO = #{mbrNo} AND POINT_AMT >= #{amount}
+  </update>
+
+  <update id="restorePoint">
+    UPDATE TB_MEMBER SET POINT_AMT = POINT_AMT + #{amount} WHERE MBR_NO = #{mbrNo}
+  </update>
+</mapper>

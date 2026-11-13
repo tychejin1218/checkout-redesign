@@ -1,0 +1,31 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin
+.kotlin/
+
+# JetBrains IDE
+.idea/
+*.iml
+out/
+
+# SQLite DB 파일. 실행·테스트 시작 시 src/main/resources/db 의 스크립트로 새로 만든다
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Log files
+logs/
+*.log
+
+# Local settings
+.claude/settings.local.json
+.env
+
+# OS
+.DS_Store
+Thumbs.db

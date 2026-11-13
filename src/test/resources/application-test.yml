@@ -1,0 +1,10 @@
+# 테스트는 build/ 아래 파일을 쓴다. bootRun 이 쓰는 data/*.db 와 섞이지 않고 ./gradlew clean 으로 지워진다
+checkout:
+  datasource:
+    new:
+      path: build/test-db/new.db
+    legacy:
+      path: build/test-db/legacy.db
+  # 테스트는 복구를 직접 호출한다. 스케줄러가 끼어들면 결과가 실행 시점에 따라 달라진다
+  recovery:
+    enabled: false
