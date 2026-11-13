@@ -26,7 +26,7 @@ class OrderCancelTest(
     @Autowired private val orderRepository: OrderRepository,
 ) : IntegrationTest() {
     @Test
-    fun `취소하면 재고와 쿠폰과 포인트가 돌아오고 표식이 R 이 된다`() {
+    fun `취소하면 재고와 쿠폰과 포인트가 돌아오고 반영 기록이 R 이 된다`() {
         issueCoupon("CPN900", MEMBER_1002, discountAmount = 10_000)
         val order =
             orderService.placeOrder(

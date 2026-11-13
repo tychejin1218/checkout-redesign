@@ -86,7 +86,7 @@ class LegacyResourceAdapterTest(
     }
 
     @Test
-    fun `이미 차감이 반영된 주문은 거부 표식으로 덮어쓰지 못한다`() {
+    fun `이미 차감이 반영된 주문은 거부 기록으로 덮어쓰지 못한다`() {
         legacyResourcePort.reserve(resources)
 
         val stat = legacyResourcePort.rejectIfUndecided(resources.orderNo)

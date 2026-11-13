@@ -26,7 +26,7 @@ class OrderPlacementTest(
     @Autowired private val orderItemRepository: OrderItemRepository,
 ) : IntegrationTest() {
     @Test
-    fun `주문하면 신규 DB 에 RESERVED 주문이 남고 레거시 재고가 줄고 표식 A 가 남는다`() {
+    fun `주문하면 신규 DB 에 RESERVED 주문이 남고 레거시 재고가 줄고 반영 기록 A 가 남는다`() {
         val result = orderService.placeOrder(orderCommand(G001, qty = 2))
 
         assertThat(result.status).isEqualTo(OrderStatus.RESERVED)

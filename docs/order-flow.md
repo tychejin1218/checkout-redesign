@@ -56,7 +56,7 @@ OrderService.placeOrder
 | 클래스.메서드 | 하는 일 | 커밋 | 증명하는 테스트 |
 |---|---|---|---|
 | `order/service/OrderResourceMapping.kt`의 `CheckoutOrder.toResources` | 방금 기록한 주문과 품목에서 레거시에 차감할 내용(`OrderResources`)을 만든다 | 없음 | (아래 `reserve` 테스트들이 함께 확인한다) |
-| `legacy/resource/LegacyResourceAdapter.reserve` | 레거시 트랜잭션 하나를 연다(`TransactionTemplate`). 아래 네 단계를 그 안에서 실행하고, 하나라도 조건에 맞지 않으면 전부 롤백한 뒤 `Rejected(이유)`를 돌려준다. 모두 되면 커밋하고 `Reserved`를 돌려준다 | **레거시 DB ②** | `OrderPlacementTest` · 주문하면 신규 DB 에 RESERVED 주문이 남고 레거시 재고가 줄고 표식 A 가 남는다 |
+| `legacy/resource/LegacyResourceAdapter.reserve` | 레거시 트랜잭션 하나를 연다(`TransactionTemplate`). 아래 네 단계를 그 안에서 실행하고, 하나라도 조건에 맞지 않으면 전부 롤백한 뒤 `Rejected(이유)`를 돌려준다. 모두 되면 커밋하고 `Reserved`를 돌려준다 | **레거시 DB ②** | `OrderPlacementTest` · 주문하면 신규 DB 에 RESERVED 주문이 남고 레거시 재고가 줄고 반영 기록 A 가 남는다 |
 | └ `legacy/mapper/LegacyResourceMapper.insertApplyMarker` | 반영 기록(`TB_NEW_ORD_APPLY`)에 `'A'`를 가장 먼저 넣는다. 이미 있으면 아무것도 바꾸지 않고 `AlreadyDecided`를 돌려준다 | | `LegacyResourceAdapterTest` · 같은 주문의 확보를 반복해도 재고와 포인트는 한 번만 줄어든다 / 반환한 주문을 다시 확보할 수 없다. `OrderCrashRecoveryTest` · 복구가 실패로 끝낸 주문의 차감이 뒤늦게 도착해도 재고는 줄지 않는다 |
 | └ `LegacyResourceAdapter.deductStocks` → `LegacyResourceMapper.deductStock` | 상품 코드 순으로 재고를 조건부 UPDATE로 줄인다. 판매 중이고, 재고가 충분하고, 가격이 2에서 읽은 값과 같을 때만 줄어든다 | | `OrderPlacementTest` · 재고보다 많이 주문하면 FAILED 가 되고 레거시에는 아무것도 남지 않는다 / 금액 계산과 재고 차감 사이에 가격이 바뀌면 차감하지 않고 FAILED 가 된다. `LegacyResourceAdapterTest` · 여러 상품 중 하나라도 재고가 부족하면 다른 상품도 차감하지 않는다. `OrderConcurrencyTest` · 재고 3개인 상품에 20명이 동시에 주문하면 3명만 성공하고 재고는 0 이 된다 |
 | └ `LegacyResourceAdapter.useCoupon` → `LegacyResourceMapper.useCoupon` | 쿠폰을 쓰는 주문이면 본인 소유의 미사용 쿠폰일 때만 사용 처리하고 주문번호를 남긴다 | | `OrderPlacementTest` · 쿠폰과 포인트를 쓰면 재고와 함께 레거시에서 차감된다. `OrderConcurrencyTest` · 같은 쿠폰으로 동시에 5건을 주문해도 쿠폰은 한 주문에만 쓰인다 |
@@ -82,7 +82,7 @@ OrderService.placeOrder
 
 ```kotlin
 @Test
-fun `주문하면 신규 DB 에 RESERVED 주문이 남고 레거시 재고가 줄고 표식 A 가 남는다`() {
+fun `주문하면 신규 DB 에 RESERVED 주문이 남고 레거시 재고가 줄고 반영 기록 A 가 남는다`() {
     val result = orderService.placeOrder(orderCommand(G001, qty = 2))
 
     assertThat(result.status).isEqualTo(OrderStatus.RESERVED)   // 신규 DB: 커밋 ③
@@ -92,7 +92,7 @@ fun `주문하면 신규 DB 에 RESERVED 주문이 남고 레거시 재고가 �
 }
 ```
 
-주석은 이 문서에서 붙인 것이다. `stockOf`, `markerOf`는 애플리케이션 코드를 거치지 않고 레거시 DB를 직접 읽는다(`support/IntegrationTest`). 테스트 이름의 "표식"은 "반영 기록"과 같은 말이다. 메서드 이름은 바꾸지 않았다.
+주석은 이 문서에서 붙인 것이다. `stockOf`, `markerOf`는 애플리케이션 코드를 거치지 않고 레거시 DB를 직접 읽는다(`support/IntegrationTest`).
 
 ## RESERVED 가 되지 않는 경우
 

@@ -13,7 +13,7 @@ import java.time.format.DateTimeFormatter
  * - 일련번호를 채번하지 않으므로 동시 요청이 같은 번호를 받으려고 경합하지 않는다.
  * - 이 번호는 레거시 DB 에도 기록되므로(TB_NEW_ORD_APPLY, TB_COUPON.USE_ORD_NO) 날짜는 레거시와 같은 한국 시간 기준이다.
  * - 무작위 부분이 겹칠 확률은 매우 낮지만 0 은 아니다. 겹치면 `orders` 의 PK 가 거절하고 새 번호로 다시 시도한다
- *   ([OrderService], DESIGN.md 4.3).
+ *   ([OrderService], DESIGN.md 4.5).
  */
 @Component
 class OrderNoGenerator(
