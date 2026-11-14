@@ -449,3 +449,26 @@ AI_REFLECTION.md 은 수정해줘
 ```
 
 결과: `DESIGN.md` 8.4 에 "같은 상품이 여러 행이면 수량을 합쳐 한 행으로 가져온다"를 확정해 적고 미결 사항에서 뺐다. `AI_REFLECTION.md` 의 가정 건수를 15건으로 고쳤다. 커밋만 하고 푸시하지 않았다.
+
+---
+
+## 27. git push 차단 규칙 추가 · 과제 PDF 삭제 요청
+
+```text
+권한 설정에 차단 규칙을 추가해줘
+assignment/과제_장바구니주문결제_지원자배포.pdf 는 삭제해줘
+```
+
+결과: `.claude/settings.json` 의 `permissions.deny` 에 `Bash(git push:*)` 를 추가했다. `assignment/과제_장바구니주문결제_지원자배포.pdf` 를 삭제했다(`git rm`). 커밋하지 않았다.
+
+---
+
+## 28. PDF 참조 정리와 커밋 요청
+
+질문 "남은 PDF 참조 문장을 정리하고 커밋할까요?"에 대한 답이다(선택지 버튼).
+
+```text
+정리하고 커밋
+```
+
+결과: `CLAUDE.md` 작업 규칙에서 PDF 를 빼고, `assignment/analysis.md` 에 원본 PDF 가 저장소에 없다는 점을 적은 뒤 27~28번 작업을 커밋했다. 푸시하지 않았다.
