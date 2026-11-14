@@ -56,7 +56,7 @@ erDiagram
 
 ## 설계만 있는 테이블 (미구현)
 
-아래 두 테이블은 **구현하지 않았다.** `orders`는 관계를 보이기 위해 이름만 다시 그렸다.
+아래 세 테이블은 **구현하지 않았다.** `orders`는 관계를 보이기 위해 이름만 다시 그렸다.
 
 ```mermaid
 erDiagram
@@ -83,10 +83,17 @@ erDiagram
         INTEGER qty
         INTEGER added_at
     }
+
+    cart_migration {
+        INTEGER member_no PK "미구현. 레거시 TB_MEMBER.MBR_NO"
+        INTEGER migrated_at "레거시 장바구니를 가져온 시각. epoch millis (UTC)"
+        INTEGER item_count "가져온 건수. 가져올 것이 없었으면 0"
+    }
 ```
 
 - `payment_line`: 결제 수단마다 한 행을 두고 행마다 상태를 둔다(DESIGN.md 7장). 레거시 `TB_PAY`가 수단별 상태를 담지 못하는 문제를 푸는 구조다.
 - `cart_item`: `UNIQUE (member_no, goods_cd)`. 가격은 저장하지 않는다(DESIGN.md 6.2). 다른 신규 테이블과 관계가 없다.
+- `cart_migration`: 회원이 신규 장바구니에 처음 접근할 때 레거시 `TB_CART`의 내용을 가져왔다는 기록이다. 회원당 한 행이고, 이 행이 있으면 `TB_CART`를 다시 읽지 않는다(DESIGN.md 8.4).
 
 ## 레거시 DB를 가리키는 컬럼
 

@@ -141,4 +141,5 @@ erDiagram
 | `TB_COUPON.USE_YN`, `USE_ORD_NO` | 조건부 사용 처리·반환 |
 | `TB_COUPON.MBR_NO`, `DC_AMT` | 읽기 (소유자 확인, 할인 금액) |
 | `TB_NEW_ORD_APPLY` 전체 | 읽기·쓰기 |
-| `TB_CART`, `TB_ORDER`, `TB_ORDER_ITEM`, `TB_PAY` | 사용하지 않음 |
+| `TB_CART` | 사용하지 않음. 설계상으로는 회원이 신규 장바구니에 처음 접근할 때 한 번 읽는다(DESIGN.md 8.4, 미구현) |
+| `TB_ORDER`, `TB_ORDER_ITEM`, `TB_PAY` | 사용하지 않음 |
